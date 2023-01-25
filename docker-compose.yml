@@ -1,0 +1,121 @@
+services:
+  meltano:
+    build:
+      context: meltano/amo
+    ports:
+      - "5001:5000"
+      - "5002:8080"
+    depends_on:
+      - postgres
+    networks:
+      - meltano
+    volumes:
+      - ./meltano/amo:/projects/amo:rw
+    environment:
+      MELTANO_PROJECT_READONLY: false
+      MELTANO_UI_READONLY: false
+      MELTANO_CLI_LOG_LEVEL: debug
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DB: meltano
+      DB_USER: postgres
+      DB_PASS: postgres
+      GOOGLE_CREDENTIALS: $BASE64_CREDENTIALS
+    restart: unless-stopped
+  cube:
+    build:
+      context: ./cube
+    ports:
+      - 4000:4000
+      - 3000:3000
+    environment:
+      CUBEJS_DEV_MODE: true
+      CUBEJS_DB_BQ_PROJECT_ID: $PROJECT_ID
+      CUBEJS_DB_BQ_CREDENTIALS: $BASE64_CREDENTIALS
+      CUBEJS_DB_TYPE: bigquery
+      CUBEJS_DB_EXPORT_BUCKET: export_data
+      CUBEJS_DB_EXPORT_BUCKET_TYPE: gcp
+      CUBEJS_CUBESTORE_HOST: cubestore_router
+      CUBEJS_REDIS_URL: redis://redis:6379
+      CUBEJS_API_SECRET: secret
+    volumes:
+      - ./cube:/cube/conf:rw
+    restart: unless-stopped
+    depends_on:
+      - cubestore_worker
+      - cube_refresh_worker
+      - redis
+  postgres:
+    image: postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: meltano
+    volumes:
+      - meltano_postgresql_data:/var/lib/postgresql/data
+    expose:
+      - 5432
+    networks:
+      - meltano
+    restart: unless-stopped
+
+  cube_refresh_worker:
+    restart: always
+    build:
+      context: ./cube
+    environment:
+      CUBEJS_DB_BQ_PROJECT_ID: $PROJECT_ID
+      CUBEJS_DB_BQ_CREDENTIALS: $BASE64_CREDENTIALS
+      CUBEJS_DB_TYPE: bigquery
+      CUBEJS_DB_EXPORT_BUCKET: export_data
+      CUBEJS_DB_EXPORT_BUCKET_TYPE: gcp
+      CUBEJS_CUBESTORE_HOST: cubestore_router
+      CUBEJS_REDIS_URL: redis://redis:6379
+      CUBEJS_API_SECRET: secret
+      CUBEJS_REFRESH_WORKER: true
+    volumes:
+      - ./cube:/cube/conf:rw
+
+  cubestore_router:
+    restart: always
+    build:
+      context: ./cube
+      dockerfile: store.Dockerfile
+    environment:
+      - CUBESTORE_WORKERS=cubestore_worker_1:10001,cubestore_worker_2:10002
+      - CUBESTORE_REMOTE_DIR=/cube/data
+      - CUBESTORE_META_PORT=9999
+      - CUBESTORE_SERVER_NAME=cubestore_router:9999
+    volumes:
+      - ./cube/.cubestore:/cube/data
+
+  cubestore_worker:
+    restart: always
+    build:
+      context: ./cube
+      dockerfile: store.Dockerfile
+    environment:
+      - CUBESTORE_WORKERS=cubestore_worker_1:10001,cubestore_worker_2:10002
+      - CUBESTORE_SERVER_NAME=cubestore_worker_1:10001
+      - CUBESTORE_WORKER_PORT=10001
+      - CUBESTORE_REMOTE_DIR=/cube/data
+      - CUBESTORE_META_ADDR=cubestore_router:9999
+    volumes:
+      - ./cube/.cubestore:/cube/data
+    depends_on:
+      - cubestore_router
+
+  redis:
+    image: bitnami/redis:latest
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    logging:
+      driver: none
+
+networks:
+  meltano:
+
+volumes:
+  meltano_postgresql_data:
+    driver: local

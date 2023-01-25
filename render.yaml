@@ -1,0 +1,206 @@
+services:
+  - type: web
+    name: prod-meltano
+    env: docker
+    region: oregon
+    plan: standard
+    branch: main
+    rootDir: meltano/amo
+    numInstances: 1
+    healthCheckPath: /
+    buildFilter:
+      paths:
+        - meltano/**/*
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: prod-pg
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: prod-pg
+          property: port
+      - key: DB_DB
+        fromDatabase:
+          name: prod-pg
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: prod-pg
+          property: user
+      - key: DB_PASS
+        fromDatabase:
+          name: prod-pg
+          property: password
+      - key: GOOGLE_CREDENTIALS
+        sync: false
+      - key: MELTANO_UI_SECRET_KEY
+        sync: false
+      - key: MELTANO_ENVIRONMENT
+        value: prod
+      - key: MELTANO_UI_SERVER_NAME
+        value: prod-meltano.onrender.com
+      - key: MELTANO_UI_WORKERS
+        value: 1
+      - key: MELTANO_UI_FORWARDED_ALLOW_IPS
+        value: "*"
+      - key: GOOGLE_CREDENTIALS
+        sync: false
+      - key: MELTANO_UI_NOTIFICATION
+        value: true
+      - key: MELTANO_MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MELTANO_MAIL_PORT
+        value: 465
+      - key: MELTANO_MAIL_DEFAULT_SENDER
+        value: '"Lord Datums" <your@email.com>'
+      - key: MELTANO_MAIL_USE_TLS
+        value: true
+      - key: MELTANO_MAIL_USERNAME
+        value: meltano
+      - key: MELTANO_MAIL_PASSWORD
+        sync: false
+  - type: web
+    name: prod-cube
+    env: docker
+    region: oregon
+    plan: starter
+    branch: main
+    rootDir: cube
+    numInstances: 1
+    healthCheckPath: /
+    buildFilter:
+      paths:
+        - cube/**/*
+    envVars:
+      - fromGroup: prod-cubeenv
+      - key: CUBEJS_REDIS_URL
+        fromService:
+          type: redis
+          name: prod-redis
+          property: connectionString
+      - key: CUBEJS_CUBESTORE_HOST
+        fromService:
+          type: pserv
+          name: prod-cubestore-router
+          property: host
+  - type: web
+    name: prod-cube-refresh-worker
+    env: docker
+    region: oregon
+    plan: starter
+    branch: main
+    rootDir: cube
+    numInstances: 1
+    healthCheckPath: /
+    buildFilter:
+      paths:
+        - cube/**/*
+    envVars:
+      - fromGroup: prod-cubeenv
+      - key: CUBEJS_REDIS_URL
+        fromService:
+          type: redis
+          name: prod-redis
+          property: connectionString
+      - key: CUBEJS_REFRESH_WORKER
+        value: true
+      - key: CUBEJS_CUBESTORE_HOST
+        fromService:
+          type: pserv
+          name: prod-cubestore-router
+          property: host
+  - type: pserv
+    name: prod-cubestore-router
+    env: docker
+    region: oregon
+    plan: starter
+    branch: main
+    rootDir: cube
+    numInstances: 1
+    buildFilter:
+      ignoredPaths:
+        - "**/*"
+    envVars:
+      - fromGroup: prod-cubeenv
+      - key: CUBESTORE_REMOTE_DIR
+        value: /cube/data
+      - key: CUBESTORE_META_PORT
+        value: 9999
+      - key: CUBESTORE_SERVER_NAME
+        fromService:
+          type: pserv
+          name: prod-cubestore-router
+          property: hostport
+      - key: CUBESTORE_WORKERS
+        fromService:
+          type: pserv
+          name: prod-cubestore-worker
+          property: hostport
+    disk:
+      name: cube-data
+      mountPath: /cube/data
+      sizeGB: 10
+  - type: pserv
+    name: prod-cubestore-worker
+    env: docker
+    region: oregon
+    plan: starter
+    branch: main
+    rootDir: cube
+    numInstances: 1
+    buildFilter:
+      ignoredPaths:
+        - "**/*"
+    envVars:
+      - key: CUBESTORE_REMOTE_DIR
+        value: /cube/data
+      - key: CUBESTORE_SERVER_NAME
+        fromService:
+          type: pserv
+          name: prod-cubestore-worker
+          property: hostport
+      - key: CUBESTORE_WORKER_PORT
+        fromService:
+          type: pserv
+          name: prod-cubestore-worker
+          property: port
+      - key: CUBESTORE_META_ADDR
+        fromService:
+          type: pserv
+          name: prod-cubestore-router
+          property: hostport
+      - key: CUBESTORE_WORKERS
+        fromService:
+          type: pserv
+          name: prod-cubestore-worker
+          property: hostport
+    disk:
+      name: cube-data
+      mountPath: /cube/data
+      sizeGB: 10
+  - type: redis
+    name: prod-redis
+    ipAllowList: []
+    plan: starter
+databases:
+  - name: prod-pg
+    region: oregon
+    plan: starter
+    databaseName: meltano
+    ipAllowList: []
+envVarGroups:
+  - name: prod-cubeenv
+    envVars:
+      - key: CUBEJS_API_SECRET
+        sync: false
+      - key: CUBEJS_DB_TYPE
+        value: bigquery
+      - key: CUBEJS_DB_BQ_PROJECT_ID
+        value: $PROJECT_ID
+      - key: CUBEJS_DB_BQ_CREDENTIALS
+        sync: false
+      - key: CUBEJS_DB_EXPORT_BUCKET
+        value: export_data
+      - key: CUBEJS_DB_EXPORT_BUCKET_TYPE
+        value: gcp

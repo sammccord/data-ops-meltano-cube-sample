@@ -1,0 +1,8 @@
+ARG CUBE_IMAGE=cubejs/cube:latest
+FROM $CUBE_IMAGE
+
+COPY . .
+
+ENV CUBEJS_DEV_MODE false
+
+EXPOSE 4000

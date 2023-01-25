@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "properties": {
+    "chain": {
+      "type": ["null", "string"]
+    },
+    "project": { "type": ["null", "string"] },
+    "symbol": { "type": ["null", "string"] },
+    "tvlUsd": { "type": ["null", "number"] },
+    "apyBase": { "type": ["null", "number"] },
+    "apyReward": {
+      "type": ["null", "number"]
+    },
+    "apy": { "type": ["null", "number"] },
+    "rewardTokens": {
+      "type": ["null", "array"],
+      "items": { "type": ["string"] }
+    },
+    "pool": { "type": "string" },
+    "apyPct1D": { "type": ["null", "number"] },
+    "apyPct7D": { "type": ["null", "number"] },
+    "apyPct30D": { "type": ["null", "number"] },
+    "stablecoin": {
+      "type": ["null", "boolean"]
+    },
+    "ilRisk": { "type": ["null", "string"] },
+    "exposure": { "type": ["null", "string"] },
+    "predictedClass": { "type": ["null", "string"] },
+    "predictedProbability": { "type": ["number", "null"] },
+    "binnedConfidence": { "type": ["number", "null"] },
+    "poolMeta": {
+      "type": ["null", "string"]
+    },
+    "mu": { "type": ["null", "number"] },
+    "sigma": { "type": ["null", "number"] },
+    "count": {
+      "type": ["null", "number"]
+    },
+    "outlier": {
+      "type": ["null", "boolean"]
+    },
+    "underlyingTokens": {
+      "type": "array",
+      "items": { "type": ["string"] }
+    }
+  }
+}

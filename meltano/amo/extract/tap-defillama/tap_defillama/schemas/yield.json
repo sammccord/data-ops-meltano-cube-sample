@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "pool": { "type": ["null", "string"] },
+    "chain": {
+      "type": ["null", "string"]
+    },
+    "project": { "type": ["null", "string"] },
+    "symbol": { "type": ["null", "string"] },
+    "tvlUsd": { "type": ["null", "number"] },
+    "apy": { "type": ["null", "number"] },
+    "apyBase": { "type": ["null", "number"] },
+    "apyReward": {
+      "type": ["null", "number"]
+    }
+  }
+}

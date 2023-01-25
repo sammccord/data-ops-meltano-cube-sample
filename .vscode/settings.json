@@ -1,0 +1,12 @@
+{
+  "python.defaultInterpreterPath": "./meltano/amo/extract/tap-defillama/.tox/py310",
+  "files.associations": {
+    "meltano/**/*.yaml": "jinja-yaml",
+    "meltano/**/*.yml": "jinja-yaml",
+    "meltano/**/*.sql": "jinja-sql",
+    "meltano/**/*.md": "jinja-md"
+  },
+  "editor.quickSuggestions": {
+    "strings": true
+  }
+}

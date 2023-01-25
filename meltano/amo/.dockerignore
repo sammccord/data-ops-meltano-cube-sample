@@ -1,0 +1,20 @@
+.dockerignore
+Dockerfile
+/.git
+
+# .gitignore
+/venv
+/.meltano
+/.env
+/ui.cfg
+/output
+
+# transform/.gitignore
+/transform/target/
+/transform/dbt_modules/
+/transform/logs/
+
+# custom
+**/.pytest_cache
+**/.tox
+**/.venv

@@ -1,0 +1,53 @@
+version: 1
+default_environment: dev
+environments:
+  - name: dev
+  - name: staging
+  - name: prod
+project_id: test-098b3196-d463-4874-8186-562feabe255a
+plugins:
+  extractors:
+    - name: tap-defillama
+      namespace: tap_defillama
+      pip_url: -e ./extract/tap-defillama
+      capabilities:
+        - state
+        - catalog
+        - discover
+  loaders:
+    - name: target-bigquery
+      variant: adswerve
+      pip_url: git+https://github.com/adswerve/target-bigquery.git@0.12.0
+      config:
+        add_metadata_columns: true
+        dataset_id: test
+        location: US
+        max_cache: 50
+        merge_state_messages: false
+        project_id: $PROJECT_ID
+        # replication_method: incremental
+        table_config:
+        table_prefix:
+        table_suffix:
+        validate_records: false
+    - name: target-jsonl
+      variant: andyh1203
+      pip_url: target-jsonl
+      config:
+        destination_path: output
+        do_timestamp_file: false
+  orchestrators:
+    - name: airflow
+      variant: apache
+      pip_url: apache-airflow==2.1.2 --constraint https://raw.githubusercontent.com/apache/airflow/constraints-2.1.2/constraints-${MELTANO__PYTHON_VERSION}.txt
+  files:
+    - name: files-airflow
+      variant: meltano
+      pip_url: git+https://github.com/meltano/files-airflow.git
+schedules:
+  - name: daily-defillama-to-bigquery
+    interval: "0 3 * * *"
+    extractor: tap-defillama
+    loader: target-bigquery
+    transform: skip
+    start_date: 2022-10-16 00:00:00
